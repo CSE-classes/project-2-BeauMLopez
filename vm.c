@@ -242,6 +242,20 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   return newsz;
 }
 
+// Add-On: creating new function that is called when Lazy allocator is used
+// Add-On: checks if size is out of bounds or smaller than new size and just returns new size if passes checks 
+int
+lallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+{
+	if(newsz >= KERNBASE)
+		return 0;
+	if(newsz < oldsz)
+		return oldsz;
+
+	return newsz;
+}
+
+
 // Deallocate user pages to bring the process size from oldsz to
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual

@@ -109,25 +109,33 @@ userinit(void)
 int
 growproc(int n)
 {
-  uint sz;
-  
-  sz = proc->sz;
-  if(n > 0){
-    if((sz = allocuvm(proc->pgdir, sz, sz + n)) == 0)
-    {
-      cprintf("Allocating pages failed!\n"); // CS3320: project 2
-      return -1;
-    }
-  } else if(n < 0){
-    if((sz = deallocuvm(proc->pgdir, sz, sz + n)) == 0)
-    {
-      cprintf("Deallocating pages failed!\n"); // CS3320: project 2
-      return -1;
-    }
-  }
-  proc->sz = sz;
-  switchuvm(proc);
-  return 0;
+	uint sz;
+	
+	sz = proc->sz;
+	if(n > 0){
+		if(0 == page_allocator_type){	// Add-On: only calls allocuvm if page_allocator_type == 0 (default)
+			if((sz = allocuvm(proc->pgdir, sz, sz + n)) == 0)
+			{
+				cprintf("Allocating pages failed!\n"); // CS3320: project 2
+				return -1;
+    			}
+		} else if(1 == page_allocator_type){	// Add-On: calls new lallocuvm() if page_allocator_type == 1 (Lazy)
+	       		if((sz = lallocuvm(proc->pgdir, sz, sz + n)) == 0)
+			{
+				cprintf("Allocating pages failed!\n");
+				return -1;
+			}
+		}
+	} else if(n < 0){
+		if((sz = deallocuvm(proc->pgdir, sz, sz + n)) == 0)
+		{
+			cprintf("Deallocating pages failed!\n"); // CS3320: project 2
+			return -1;
+		}
+	}
+	proc->sz = sz;
+	switchuvm(proc);
+	return 0;
 }
 
 // Create a new process copying p as the parent.

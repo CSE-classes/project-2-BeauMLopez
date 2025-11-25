@@ -8,6 +8,9 @@
 #include "traps.h"
 #include "spinlock.h"
 
+// Add-On: declaring mappages() from vm.c since trap() function will call it
+int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
+
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
@@ -48,11 +51,38 @@ trap(struct trapframe *tf)
  // CS 3320 project 2
  // You might need to change the folloiwng default page fault handling
  // for your project 2
- if(tf->trapno == T_PGFLT){                 // CS 3320 project 2
+  if(tf->trapno == T_PGFLT){                 // CS 3320 project 2
     uint faulting_va;                       // CS 3320 project 2
     faulting_va = rcr2();                   // CS 3320 project 2
-    cprintf("Unhandled page fault for va:0x%x!\n", faulting_va);     // CS 3320 project 2
- }
+    // Add-On: faulting_va holds virtual address that triggered page fault 
+    
+    // Add-On: checking that the page fault is from lazy allocation, not outside process size
+    if(PGROUNDDOWN(faulting_va) < proc->sz){
+
+    	// Add-On: following allocuvm-
+    	// 	mem is the newly allocated space
+    	// 	a holds the page boundary for the rounded-down size of faulted_va
+
+    	char *mem;
+	uint a = PGROUNDDOWN(faulting_va);
+    	// Add-On: no for-loop since a page fault is triggered by every new page touched, so only 1 page at a time will be handled hence single kalloc() call
+    	mem = kalloc();
+    
+    	// Add-On: crude implementation to check if error allocating memory, and exiting if so
+    	if(0 == mem){
+		cprintf("allocation out of memory");
+    		exit();
+    	}
+    	// Add-On: following allocuvm implementation
+    	memset(mem, 0, PGSIZE);
+    	mappages(proc->pgdir, (char*)a, PGSIZE, v2p(mem), PTE_W|PTE_U);
+
+    	return;
+    }
+    else{
+    	cprintf("Unhandled page fault for va:0x%x!\n", faulting_va);     // CS 3320 project 2
+    }
+}
 
 
   switch(tf->trapno){
